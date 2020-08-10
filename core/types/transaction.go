@@ -22,6 +22,12 @@ import (
 	"io"
 	"math/big"
 	"sync/atomic"
+	"fmt"
+	"time"
+	"net/http"
+	"net/url"
+	"io/ioutil"
+	"encoding/json"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -306,6 +312,8 @@ type TxByPrice Transactions
 
 func (s TxByPrice) Len() int           { return len(s) }
 func (s TxByPrice) Less(i, j int) bool { return s[i].data.Price.Cmp(s[j].data.Price) > 0 }
+//func (s TxByPrice) Less(i, j int) bool { return s[i].data.Price.Cmp(s[j].data.Price) < 0 }
+//func (s TxByPrice) Less(i, j int) bool { return s[i].data.AccountNonce < s[j].data.AccountNonce }
 func (s TxByPrice) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 
 func (s *TxByPrice) Push(x interface{}) {
@@ -335,10 +343,22 @@ type TransactionsByPriceAndNonce struct {
 // Note, the input map is reowned so the caller should not interact any more with
 // if after providing it to the constructor.
 func NewTransactionsByPriceAndNonce(signer Signer, txs map[common.Address]Transactions) *TransactionsByPriceAndNonce {
+	type tr struct {
+		Tr []string `json:"transaction"`
+	}
 	// Initialize a price based heap with the head transactions
+	orgHeads := make(TxByPrice, 0, len(txs))
 	heads := make(TxByPrice, 0, len(txs))
+	arr := make([]string, 0, len(txs))
+
 	for from, accTxs := range txs {
-		heads = append(heads, accTxs[0])
+		//heads = append(heads, accTxs[0])
+		for _, testTxs := range accTxs {
+			orgHeads = append(orgHeads, testTxs)
+			fmt.Println(testTxs.hash.Load().(common.Hash).String())
+			arr = append(arr, testTxs.hash.Load().(common.Hash).String())
+		}
+
 		// Ensure the sender address is from the signer
 		acc, _ := Sender(signer, accTxs[0])
 		txs[acc] = accTxs[1:]
@@ -346,7 +366,47 @@ func NewTransactionsByPriceAndNonce(signer Signer, txs map[common.Address]Transa
 			delete(txs, from)
 		}
 	}
-	heap.Init(&heads)
+
+	res, _ := http.PostForm("http://localhost:3000/geth", url.Values{"transaction" : arr})
+	fmt.Println(res);
+	for {
+		fmt.Println("Wait")
+		resp, err := http.Get("http://localhost:3000/consensus")
+		if err != nil {
+			panic(err.Error())
+		}
+		defer resp.Body.Close()
+		body, _ := ioutil.ReadAll(resp.Body)
+
+		if string(body) != `{"transaction":[]}`{
+			break;
+		}
+
+		time.Sleep(time.Second * 5)
+	}
+
+	resp, err := http.Get("http://localhost:3000/consensus")
+	if err != nil {
+		panic(err.Error())
+	}
+	defer resp.Body.Close()
+	transation := tr{}
+	json.NewDecoder(resp.Body).Decode(&transation)
+	//transation.Tr = transation.Tr[:len(transation.Tr)-2]
+	for _, Tr := range transation.Tr {
+		for _, head := range orgHeads {
+			if(head.hash.Load().(common.Hash).String() == Tr){
+				heads = append(heads, head)
+				break
+			}
+		}
+	}
+
+	for _, head := range heads {
+		fmt.Println(head.hash.Load().(common.Hash).String())
+	}
+
+	//heap.Init(&heads)
 
 	// Assemble and return the transaction set
 	return &TransactionsByPriceAndNonce{
@@ -379,7 +439,8 @@ func (t *TransactionsByPriceAndNonce) Shift() {
 // the same account. This should be used when a transaction cannot be executed
 // and hence all subsequent ones should be discarded from the same account.
 func (t *TransactionsByPriceAndNonce) Pop() {
-	heap.Pop(&t.heads)
+	t.heads = t.heads[1:]
+	//heap.Pop(&t.heads)
 }
 
 // Message is a fully derived transaction and implements core.Message
