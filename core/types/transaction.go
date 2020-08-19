@@ -17,17 +17,18 @@
 package types
 
 import (
+	"bytes"
 	"container/heap"
+	"encoding/json"
 	"errors"
-	"io"
-	"math/big"
-	"sync/atomic"
 	"fmt"
-	"time"
+	"io"
+	"io/ioutil"
+	"math/big"
 	"net/http"
 	"net/url"
-	"io/ioutil"
-	"encoding/json"
+	"sync/atomic"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -342,9 +343,10 @@ type TransactionsByPriceAndNonce struct {
 //
 // Note, the input map is reowned so the caller should not interact any more with
 // if after providing it to the constructor.
-func NewTransactionsByPriceAndNonce(signer Signer, txs map[common.Address]Transactions) *TransactionsByPriceAndNonce {
+func NewTransactionsByPriceAndNonce(signer Signer, txs map[common.Address]Transactions, blockNum uint64) *TransactionsByPriceAndNonce {
 	type tr struct {
 		Tr []string `json:"transaction"`
+		BlockHeight uint64 `json:"blockHeight"`
 	}
 	// Initialize a price based heap with the head transactions
 	orgHeads := make(TxByPrice, 0, len(txs))
@@ -367,7 +369,18 @@ func NewTransactionsByPriceAndNonce(signer Signer, txs map[common.Address]Transa
 		}
 	}
 
-	res, _ := http.PostForm("http://localhost:3000/geth", url.Values{"transaction" : arr})
+	allTransactionWithBlockHeight := &tr{
+		Tr: arr,
+		BlockHeight: blockNum,
+	}
+	jsonByte, _ := json.Marshal(allTransactionWithBlockHeight)
+	res, err := http.Post("http://localhost:3000/geth", "application/json", bytes.NewBuffer(jsonByte))
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer res.Body.Close()
+
+	//res, _ := http.PostForm("http://localhost:3000/geth", url.Values{"transaction": arr,})
 	fmt.Println(res);
 	for {
 		fmt.Println("Wait")
@@ -382,7 +395,7 @@ func NewTransactionsByPriceAndNonce(signer Signer, txs map[common.Address]Transa
 			break;
 		}
 
-		time.Sleep(time.Second * 5)
+		time.Sleep(time.Second * 1)
 	}
 
 	resp, err := http.Get("http://localhost:3000/consensus")
