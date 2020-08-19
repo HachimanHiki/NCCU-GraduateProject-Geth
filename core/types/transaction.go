@@ -344,8 +344,8 @@ type TransactionsByPriceAndNonce struct {
 // Note, the input map is reowned so the caller should not interact any more with
 // if after providing it to the constructor.
 func NewTransactionsByPriceAndNonce(signer Signer, txs map[common.Address]Transactions, blockNum uint64) *TransactionsByPriceAndNonce {
-	type tr struct {
-		Tr []string `json:"transaction"`
+	type transactionWithBlockHeight struct {
+		Transaction []string `json:"transaction"`
 		BlockHeight uint64 `json:"blockHeight"`
 	}
 	// Initialize a price based heap with the head transactions
@@ -369,8 +369,8 @@ func NewTransactionsByPriceAndNonce(signer Signer, txs map[common.Address]Transa
 		}
 	}
 
-	allTransactionWithBlockHeight := &tr{
-		Tr: arr,
+	allTransactionWithBlockHeight := &transactionWithBlockHeight{
+		Transaction: arr,
 		BlockHeight: blockNum,
 	}
 	jsonByte, _ := json.Marshal(allTransactionWithBlockHeight)
@@ -384,12 +384,12 @@ func NewTransactionsByPriceAndNonce(signer Signer, txs map[common.Address]Transa
 	fmt.Println(res);
 	for {
 		fmt.Println("Wait")
-		resp, err := http.Get("http://localhost:3000/consensus")
+		res, err = http.Get("http://localhost:3000/consensus")
 		if err != nil {
 			panic(err.Error())
 		}
-		defer resp.Body.Close()
-		body, _ := ioutil.ReadAll(resp.Body)
+
+		body, _ := ioutil.ReadAll(res.Body)
 
 		if string(body) != `{"transaction":[]}`{
 			break;
@@ -398,15 +398,15 @@ func NewTransactionsByPriceAndNonce(signer Signer, txs map[common.Address]Transa
 		time.Sleep(time.Second * 1)
 	}
 
-	resp, err := http.Get("http://localhost:3000/consensus")
+	res, err = http.Get("http://localhost:3000/consensus")
 	if err != nil {
 		panic(err.Error())
 	}
-	defer resp.Body.Close()
-	transation := tr{}
-	json.NewDecoder(resp.Body).Decode(&transation)
-	//transation.Tr = transation.Tr[:len(transation.Tr)-2]
-	for _, Tr := range transation.Tr {
+
+	resultTransation := transactionWithBlockHeight{}
+	json.NewDecoder(res.Body).Decode(&resultTransation)
+	
+	for _, Tr := range resultTransation.Transaction {
 		for _, head := range orgHeads {
 			if(head.hash.Load().(common.Hash).String() == Tr){
 				heads = append(heads, head)
