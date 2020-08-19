@@ -26,7 +26,6 @@ import (
 	"io/ioutil"
 	"math/big"
 	"net/http"
-	"net/url"
 	"sync/atomic"
 	"time"
 
