@@ -342,22 +342,26 @@ type TransactionsByPriceAndNonce struct {
 //
 // Note, the input map is reowned so the caller should not interact any more with
 // if after providing it to the constructor.
-func NewTransactionsByPriceAndNonce(signer Signer, txs map[common.Address]Transactions, blockNum uint64) *TransactionsByPriceAndNonce {
+func NewTransactionsByPriceAndNonce(signer Signer, txs map[common.Address]Transactions, parent *Block) *TransactionsByPriceAndNonce {
 	type transactionWithBlockHeight struct {
 		Transaction []string `json:"transaction"`
 		BlockHeight uint64 `json:"blockHeight"`
+		ParentHash string `json:"parentHash"`
+		ReceiverAddress []string `json:"receiverAddress"`
 	}
 	// Initialize a price based heap with the head transactions
 	orgHeads := make(TxByPrice, 0, len(txs))
 	heads := make(TxByPrice, 0, len(txs))
-	arr := make([]string, 0, len(txs))
+	allTransaction := make([]string, 0, len(txs))
+	receiverAddress := make([]string, 0, len(txs))
 
 	for from, accTxs := range txs {
 		//heads = append(heads, accTxs[0])
 		for _, testTxs := range accTxs {
 			orgHeads = append(orgHeads, testTxs)
-			fmt.Println(testTxs.hash.Load().(common.Hash).String())
-			arr = append(arr, testTxs.hash.Load().(common.Hash).String())
+			//fmt.Println(testTxs.hash.Load().(common.Hash).String())
+			allTransaction = append(allTransaction, testTxs.hash.Load().(common.Hash).String())
+			receiverAddress = append(receiverAddress, testTxs.data.Recipient.String())
 		}
 
 		// Ensure the sender address is from the signer
@@ -369,8 +373,10 @@ func NewTransactionsByPriceAndNonce(signer Signer, txs map[common.Address]Transa
 	}
 
 	allTransactionWithBlockHeight := &transactionWithBlockHeight{
-		Transaction: arr,
-		BlockHeight: blockNum,
+		Transaction: allTransaction,
+		BlockHeight: parent.NumberU64() + 1,
+		ParentHash: parent.Hash().String(),
+		ReceiverAddress: receiverAddress,
 	}
 	jsonByte, _ := json.Marshal(allTransactionWithBlockHeight)
 	res, err := http.Post("http://localhost:3000/geth", "application/json", bytes.NewBuffer(jsonByte))
@@ -380,7 +386,7 @@ func NewTransactionsByPriceAndNonce(signer Signer, txs map[common.Address]Transa
 	defer res.Body.Close()
 
 	//res, _ := http.PostForm("http://localhost:3000/geth", url.Values{"transaction": arr,})
-	fmt.Println(res);
+	//fmt.Println(res);
 	for {
 		fmt.Println("Wait")
 		res, err = http.Get("http://localhost:3000/consensus")
@@ -413,11 +419,11 @@ func NewTransactionsByPriceAndNonce(signer Signer, txs map[common.Address]Transa
 			}
 		}
 	}
-
+/*
 	for _, head := range heads {
 		fmt.Println(head.hash.Load().(common.Hash).String())
 	}
-
+*/
 	//heap.Init(&heads)
 
 	// Assemble and return the transaction set
