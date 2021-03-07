@@ -484,6 +484,11 @@ func (t *TransactionsByPriceAndNonce) Shift() {
 // the same account. This should be used when a transaction cannot be executed
 // and hence all subsequent ones should be discarded from the same account.
 func (t *TransactionsByPriceAndNonce) Pop() {
+	acc, _ := Sender(t.signer, t.heads[0])
+	if t.txs[acc].Len() > 0 {
+		txs := t.txs[acc]
+		t.txs[acc] = txs[1:]
+	}
 	t.heads = t.heads[1:]
 	//heap.Pop(&t.heads)
 }
