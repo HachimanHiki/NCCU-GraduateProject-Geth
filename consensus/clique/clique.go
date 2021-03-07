@@ -579,6 +579,18 @@ func (c *Clique) Authorize(signer common.Address, signFn SignerFn) {
 	c.signFn = signFn
 }
 
+func (c *Clique) GetRecents(chain consensus.ChainReader, header *types.Header) (map[uint64]common.Address, error) {
+	number := header.Number.Uint64()
+	if number == 0 {
+		return nil, errUnknownBlock
+	}
+	snap, err := c.snapshot(chain, number-1, header.ParentHash, nil)
+	if err != nil {
+		return nil, err
+	}
+	return snap.Recents, nil
+}
+
 // Seal implements consensus.Engine, attempting to create a sealed block using
 // the local signing credentials.
 func (c *Clique) Seal(chain consensus.ChainReader, block *types.Block, results chan<- *types.Block, stop <-chan struct{}) error {

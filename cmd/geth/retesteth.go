@@ -212,6 +212,10 @@ func (e *NoRewardEngine) VerifyUncles(chain consensus.ChainReader, block *types.
 	return e.inner.VerifyUncles(chain, block)
 }
 
+func (e *NoRewardEngine) GetRecents(chain consensus.ChainReader, header *types.Header) (map[uint64]common.Address, error) {
+	return e.inner.GetRecents(chain, header)
+}
+
 func (e *NoRewardEngine) VerifySeal(chain consensus.ChainReader, header *types.Header) error {
 	return e.inner.VerifySeal(chain, header)
 }

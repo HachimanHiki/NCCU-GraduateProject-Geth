@@ -95,6 +95,7 @@ type Engine interface {
 	FinalizeAndAssemble(chain ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction,
 		uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error)
 
+	GetRecents(chain ChainReader, header *types.Header) (map[uint64]common.Address, error)
 	// Seal generates a new sealing request for the given input block and pushes
 	// the result into the given channel.
 	//

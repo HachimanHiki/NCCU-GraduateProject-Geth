@@ -467,7 +467,8 @@ func (w *worker) mainLoop() {
 					acc, _ := types.Sender(w.current.signer, tx)
 					txs[acc] = append(txs[acc], tx)
 				}
-				txset := types.NewTransactionsByPriceAndNonce(w.current.signer, txs, w.chain.CurrentBlock())
+				recents, _ := w.engine.GetRecents(w.chain, w.chain.CurrentBlock().Header())
+				txset := types.NewTransactionsByPriceAndNonce(w.current.signer, txs, w.chain.CurrentBlock(), recents, w.coinbase.String())
 				tcount := w.current.tcount
 				w.commitTransactions(txset, coinbase, nil)
 				// Only update the snapshot if any new transactons were added
@@ -943,14 +944,15 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 			localTxs[account] = txs
 		}
 	}
+	recents, _ := w.engine.GetRecents(w.chain, header)
 	if len(localTxs) > 0 {
-		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, localTxs, parent)
+		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, localTxs, parent, recents, w.coinbase.String())
 		if w.commitTransactions(txs, w.coinbase, interrupt) {
 			return
 		}
 	}
 	if len(remoteTxs) > 0 {
-		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, remoteTxs, parent)
+		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, remoteTxs, parent, recents, w.coinbase.String())
 		if w.commitTransactions(txs, w.coinbase, interrupt) {
 			return
 		}

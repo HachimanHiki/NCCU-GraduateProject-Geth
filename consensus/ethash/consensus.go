@@ -579,6 +579,11 @@ func (ethash *Ethash) FinalizeAndAssemble(chain consensus.ChainReader, header *t
 	return types.NewBlock(header, txs, uncles, receipts), nil
 }
 
+func (ethash *Ethash) GetRecents(chain consensus.ChainReader, header *types.Header) (map[uint64]common.Address, error) {
+	// Accumulate any block and uncle rewards and commit the final state root
+	return nil, nil
+}
+
 // SealHash returns the hash of a block prior to it being sealed.
 func (ethash *Ethash) SealHash(header *types.Header) (hash common.Hash) {
 	hasher := sha3.NewLegacyKeccak256()

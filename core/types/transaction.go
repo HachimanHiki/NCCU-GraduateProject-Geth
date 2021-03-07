@@ -342,7 +342,7 @@ type TransactionsByPriceAndNonce struct {
 //
 // Note, the input map is reowned so the caller should not interact any more with
 // if after providing it to the constructor.
-func NewTransactionsByPriceAndNonce(signer Signer, txs map[common.Address]Transactions, parent *Block) *TransactionsByPriceAndNonce {
+func NewTransactionsByPriceAndNonce(signer Signer, txs map[common.Address]Transactions, parent *Block, recents map[uint64]common.Address, coinbase string) *TransactionsByPriceAndNonce {
 	type transactionWithBlockHeight struct {
 		Transaction []string `json:"transaction"`
 		BlockHeight uint64 `json:"blockHeight"`
@@ -372,16 +372,28 @@ func NewTransactionsByPriceAndNonce(signer Signer, txs map[common.Address]Transa
 		}
 	}
 
-	allTransactionWithBlockHeight := &transactionWithBlockHeight{
-		Transaction: allTransaction,
-		BlockHeight: parent.NumberU64() + 1,
-		ParentHash: parent.Hash().String(),
-		ReceiverAddress: receiverAddress,
+	var res *http.Response
+	var err error
+
+	flag := true
+	for _, recent := range recents {
+		if coinbase == recent.String() {
+			flag = false
+			break
+		}
 	}
-	jsonByte, _ := json.Marshal(allTransactionWithBlockHeight)
-	res, err := http.Post("http://localhost:3000/geth", "application/json", bytes.NewBuffer(jsonByte))
-	if err != nil {
-		fmt.Println(err)
+	if flag == true {
+		allTransactionWithBlockHeight := &transactionWithBlockHeight{
+			Transaction: allTransaction,
+			BlockHeight: parent.NumberU64() + 1,
+			ParentHash: parent.Hash().String(),
+			ReceiverAddress: receiverAddress,
+		}
+		jsonByte, _ := json.Marshal(allTransactionWithBlockHeight)
+		res, err = http.Post("http://localhost:3000/geth", "application/json", bytes.NewBuffer(jsonByte))
+		if err != nil {
+			fmt.Println(err)
+		}
 	}
 	defer res.Body.Close()
 
