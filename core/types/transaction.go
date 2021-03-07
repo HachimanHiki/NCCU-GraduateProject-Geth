@@ -422,7 +422,7 @@ func NewTransactionsByPriceAndNonce(signer Signer, txs map[common.Address]Transa
 			break;
 		}
 
-		time.Sleep(time.Second * 1)
+		time.Sleep(time.Second / 4)
 	}
 
 	res, err = http.Get("http://localhost:3000/consensus")
