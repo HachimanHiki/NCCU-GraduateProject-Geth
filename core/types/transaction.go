@@ -446,7 +446,7 @@ func NewTransactionsByPriceAndNonce(signer Signer, txs map[common.Address]Transa
 				break
 			}
 		}
-		if len(heads) == 1200 {
+		if len(heads) == int(parent.header.GasLimit / 21000) {
 			break
 		}
 	}
