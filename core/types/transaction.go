@@ -395,7 +395,12 @@ func NewTransactionsByPriceAndNonce(signer Signer, txs map[common.Address]Transa
 			fmt.Println(err)
 		}
 	}
-	defer res.Body.Close()
+
+	defer func() {
+		if res != nil {
+			res.Body.Close()
+		}
+	}()
 
 	//res, _ := http.PostForm("http://localhost:3000/geth", url.Values{"transaction": arr,})
 	//fmt.Println(res);
@@ -403,7 +408,12 @@ func NewTransactionsByPriceAndNonce(signer Signer, txs map[common.Address]Transa
 		fmt.Println("Wait")
 		res, err = http.Get("http://localhost:3000/consensus")
 		if err != nil {
-			panic(err.Error())
+			fmt.Println(err)
+			return &TransactionsByPriceAndNonce{
+				txs:    txs,
+				heads:  heads,
+				signer: signer,
+			}
 		}
 
 		body, _ := ioutil.ReadAll(res.Body)
@@ -417,7 +427,12 @@ func NewTransactionsByPriceAndNonce(signer Signer, txs map[common.Address]Transa
 
 	res, err = http.Get("http://localhost:3000/consensus")
 	if err != nil {
-		panic(err.Error())
+		fmt.Println(err)
+		return &TransactionsByPriceAndNonce{
+			txs:    txs,
+			heads:  heads,
+			signer: signer,
+		}
 	}
 
 	resultTransation := transactionWithBlockHeight{}
