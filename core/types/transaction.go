@@ -439,11 +439,15 @@ func NewTransactionsByPriceAndNonce(signer Signer, txs map[common.Address]Transa
 	json.NewDecoder(res.Body).Decode(&resultTransation)
 	
 	for _, Tr := range resultTransation.Transaction {
-		for _, head := range orgHeads {
+		for i, head := range orgHeads {
 			if(head.hash.Load().(common.Hash).String() == Tr){
 				heads = append(heads, head)
+				orgHeads = orgHeads[i+1:]
 				break
 			}
+		}
+		if len(heads) == 1200 {
+			break
 		}
 	}
 /*
