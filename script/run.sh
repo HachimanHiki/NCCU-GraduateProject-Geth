@@ -1,0 +1,1 @@
+geth --datadir ./ --allow-insecure-unlock --nousb --nodiscover --txpool.globalslots 16384 --txpool.globalqueue 4096 --syncmode "full" --networkid 15 --port 30303 --rpc --rpccorsdomain "*" --rpcaddr "0.0.0.0" --rpcport 8545 --rpcapi "eth,net,web3,personal" --unlock "94E8cE38148e8BC73B8e0aF0fE8275028B452466" --password pwd.txt console
